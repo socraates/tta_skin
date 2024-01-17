@@ -32,6 +32,8 @@ class Identity(torch.nn.Module):
 def Featurizer(model_type):
     if model_type == 'vit':
         return ViT2()
+    elif model_type == 'hvit':
+        return HybridViT()
     elif model_type == 'resnet50':
         return ResNet()
     else:
