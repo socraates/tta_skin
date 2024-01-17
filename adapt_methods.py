@@ -191,7 +191,7 @@ class T3A(nn.Module):
         self.num_classes = num_classes
         self.softmax = torch.nn.Softmax(-1)
 
-    def forward(self, x, adapt=False):
+    def forward(self, x, adapt=True):
         cached_loader = False
         if not cached_loader:
             z = self.featurizer(x)
@@ -236,7 +236,7 @@ class T3A(nn.Module):
         
         return self.supports, self.labels
 
-    def predict(self, x, adapt=False):
+    def predict(self, x, adapt=True):
         return self(x, adapt)
 
     def reset(self):
@@ -266,7 +266,7 @@ class PseudoLabel(nn.Module):
         self.model_state, self.optimizer_state = \
             copy_model_and_optimizer(self.model, self.optimizer)
 
-    def forward(self, x, adapt=False):
+    def forward(self, x, adapt=True):
         cached_loader = False
         if adapt:
             if self.episodic:
@@ -312,7 +312,7 @@ class PseudoLabel(nn.Module):
         )
         return adapted_algorithm, optimizer
 
-    def predict(self, x, adapt=False):
+    def predict(self, x, adapt=True):
         return self(x, adapt)
 
     def reset(self):
@@ -347,7 +347,7 @@ class SHOT(nn.Module):
         self.model_state, self.optimizer_state = \
             copy_model_and_optimizer(self.model, self.optimizer)
 
-    def forward(self, x, adapt=False):
+    def forward(self, x, adapt=True):
         cached_loader = False
         if adapt:
             if self.episodic:
@@ -373,12 +373,12 @@ class SHOT(nn.Module):
         Measure entropy of the model prediction, take gradients, and update params.
         """
         # forward
-        optimizer.zero_grad()
+        self.optimizer.zero_grad()
         outputs = model(x)
         
         loss = self.loss(outputs)
         loss.backward()
-        optimizer.step()
+        self.optimizer.step()
         return outputs
     
     def loss(self, outputs):
@@ -425,7 +425,7 @@ class PLClf(PseudoLabel):
         )
         return adapted_algorithm, optimizer
 
-    def predict(self, x, adapt=False):
+    def predict(self, x, adapt=True):
         return self(x, adapt)
 
     def reset(self):

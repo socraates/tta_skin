@@ -2,7 +2,7 @@ import torchvision
 import torch
 from torch.nn import Sequential, Linear, ReLU
 import timm
-from vision_transformer import HybridViT, DeiT
+from vision_transformer import HybridViT, ViT2
 
     
 class ResNet(torch.nn.Module):
@@ -30,10 +30,8 @@ class Identity(torch.nn.Module):
 
 
 def Featurizer(model_type):
-    if model_type == 'hvit':
-        return HybridViT()
-    elif model_type == 'deit':
-        return DeiT()
+    if model_type == 'vit':
+        return ViT2()
     elif model_type == 'resnet50':
         return ResNet()
     else:
