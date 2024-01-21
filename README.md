@@ -1,5 +1,6 @@
-Under construction...
+# Test-Time Adaptation for Skin Lesion Classification
+Codebase is based on parts of [T3A](https://github.com/matsuolab/T3A)
 
-Based on T3A + SAR papers
+[SAR](https://github.com/mr-eggplant/SAR) and [SHOT](https://github.com/tim-learn/SHOT)
 
 
