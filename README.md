@@ -4,3 +4,5 @@ Test-Time Adaptation implementations:
 [SAR :link:](https://github.com/mr-eggplant/SAR) and [SHOT :link:](https://github.com/tim-learn/SHOT)
 
 
+Augmentation is inspired by:
+https://github.com/haqishen/SIIM-ISIC-Melanoma-Classification-1st-Place-Solution/tree/master
