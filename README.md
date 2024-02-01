@@ -5,4 +5,4 @@ Test-Time Adaptation implementations:
 
 
 Augmentation is inspired by:
-https://github.com/haqishen/SIIM-ISIC-Melanoma-Classification-1st-Place-Solution
+[https://github.com/haqishen/SIIM-ISIC-Melanoma-Classification-1st-Place-Solution](https://www.kaggle.com/c/siim-isic-melanoma-classification/discussion/175412)https://www.kaggle.com/c/siim-isic-melanoma-classification/discussion/175412
