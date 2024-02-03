@@ -1,4 +1,13 @@
+"""
+contains train and evaluate functions
++ a custom class for the isic dataset to allow for loading single classes
+"""
 import glob
+from torch.utils.data import Dataset
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+from sklearn.metrics import precision_recall_fscore_support
 
 def train_model(model, dataloader, num_epochs=3):
     device = 'cuda'
@@ -18,8 +27,6 @@ def train_model(model, dataloader, num_epochs=3):
             x = x.to(device)
             y = y.to(device)
 
-            #print("Factor = ",i," , Learning Rate = ",model.optimizer.param_groups[0]["lr"])
-
             outputs = model.predict(x).to(device)
 
             criterion = nn.CrossEntropyLoss()
@@ -28,7 +35,6 @@ def train_model(model, dataloader, num_epochs=3):
             model.optimizer.zero_grad()
             loss.backward()
             model.optimizer.step()
-            #scheduler.step(epoch + i / iters)
 
             running_loss += loss.item() * x.size(0)
             running_corrects += torch.sum(outputs.argmax(1) == y)
@@ -46,7 +52,7 @@ def train_model(model, dataloader, num_epochs=3):
     return model
 
 
-def evaluate(adapt_model, dl, adapt=False):
+def evaluate(adapt_model, dataloader, adapt=False):
   device = 'cuda'
   torch.manual_seed(0)
   total = 0
@@ -56,7 +62,7 @@ def evaluate(adapt_model, dl, adapt=False):
 
   adapt_model.eval()
   with torch.no_grad():
-    for x, y in tqdm(dl):
+    for x, y in tqdm(dataloader):
       x = x.to(device)
       y = y.to(device)
       if adapt:
