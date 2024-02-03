@@ -1,8 +1,11 @@
+"""
+Based on https://github.com/matsuolab/T3A and reduced to resnet and deit
+"""
 import torchvision
 import torch
 from torch.nn import Sequential, Linear, ReLU
 import timm
-from vision_transformer import HybridViT, ViT2
+from vision_transformer import DeiT
 
     
 class ResNet(torch.nn.Module):
@@ -30,10 +33,8 @@ class Identity(torch.nn.Module):
 
 
 def Featurizer(model_type):
-    if model_type == 'vit':
-        return ViT2()
-    elif model_type == 'hvit':
-        return HybridViT()
+    if model_type == 'deit':
+        return DeiT()
     elif model_type == 'resnet50':
         return ResNet()
     else:

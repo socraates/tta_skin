@@ -1,4 +1,6 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+"""
+ERM class selected from backbone algorithms in https://github.com/matsuolab/T3A
+"""
 
 import torch
 import torch.nn as nn
@@ -16,7 +18,7 @@ class ERM(torch.nn.Module):
     Empirical Risk Minimization (ERM)
     """
 
-    def __init__(self, model_type):
+    def __init__(self, model_type, lr):
         super(ERM, self).__init__()
         self.featurizer = networks.Featurizer(model_type)
         self.classifier = networks.Classifier(
@@ -27,7 +29,7 @@ class ERM(torch.nn.Module):
         self.network = nn.Sequential(self.featurizer, self.classifier)
         self.optimizer = torch.optim.Adam(
             self.network.parameters(),
-            lr=1e-3, #default
+            lr=lr, #default
             #weight_decay=self.hparams['weight_decay']
         )
 

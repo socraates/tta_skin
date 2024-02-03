@@ -1,3 +1,8 @@
+"""
+Based on T3A and SHOT implementations from https://github.com/matsuolab/T3A
++ SAR https://github.com/mr-eggplant/SAR
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -45,16 +50,19 @@ class SAR(nn.Module):
         self.model_state, self.optimizer_state = \
             copy_model_and_optimizer(self.model, self.optimizer)
 
-    def forward(self, x, adapt=True):
-        if self.episodic:
-            self.reset()
-
-        for _ in range(self.steps):
-            outputs, ema, reset_flag = self.forward_and_adapt_sar(x, self.model, self.optimizer, self.margin_e0, self.reset_constant_em, self.ema)
-            if reset_flag:
+    def forward(self, x, adapt=False):
+        if adapt:
+            if self.episodic:
                 self.reset()
-            self.ema = ema  # update moving average value of loss
-
+                
+    
+            for _ in range(self.steps):
+                outputs, ema, reset_flag = self.forward_and_adapt_sar(x, self.model, self.optimizer, self.margin_e0, self.reset_constant_em, self.ema)
+                if reset_flag:
+                    self.reset()
+                self.ema = ema  # update moving average value of loss
+        else:
+            outputs = self.model(x)
         return outputs
     
     def update_ema(self, ema, new_data):
@@ -135,8 +143,8 @@ class SAR(nn.Module):
     
     def configure_model_optimizer(self, algorithm):
         adapted_algorithm = copy.deepcopy(algorithm)
-        adapted_algorithm.featurizer = self.configure_model(adapted_algorithm.featurizer)
-        params, param_names = self.collect_params(adapted_algorithm.featurizer)
+        adapted_algorithm.network = self.configure_model(adapted_algorithm.network)
+        params, param_names = self.collect_params(adapted_algorithm.network)
         base_optimizer = torch.optim.SGD
         optimizer = SAM(params, base_optimizer, lr=1e-3, momentum=0.9)
         # adapted_algorithm.classifier.predict = lambda self, x: self(x)
@@ -244,82 +252,6 @@ class T3A(nn.Module):
         self.labels = self.warmup_labels.data
         self.ent = self.warmup_ent.data
 
-
-class PseudoLabel(nn.Module):
-    def __init__(self, algorithm, alpha=1, beta=0.9, gamma=1):
-        """
-        Hparams
-        -------
-        alpha (float) : learning rate coefficient
-        beta (float) : threshold
-        gamma (int) : number of updates
-        """
-        super().__init__()
-        self.model, self.optimizer = self.configure_model_optimizer(algorithm, alpha=alpha)
-        self.beta = beta
-        self.steps = gamma
-        assert self.steps > 0, "tent requires >= 1 step(s) to forward and update"
-        self.episodic = False
-    
-        # note: if the model is never reset, like for continual adaptation,
-        # then skipping the state copy would save memory
-        self.model_state, self.optimizer_state = \
-            copy_model_and_optimizer(self.model, self.optimizer)
-
-    def forward(self, x, adapt=True):
-        cached_loader = False
-        if adapt:
-            if self.episodic:
-                self.reset()
-
-            for _ in range(self.steps):
-                if cached_loader:
-                    outputs = self.forward_and_adapt(x, self.model.classifier, self.optimizer)
-                else:
-                    self.model.featurizer.eval()
-                    outputs = self.forward_and_adapt(x, self.model, self.optimizer)
-                    self.model.featurizer.train()
-        else:
-            if cached_loader:
-                outputs = self.model.classifier(x)
-            else:
-                outputs = self.model(x)
-        return outputs
-
-    @torch.enable_grad()  # ensure grads in possible no grad context for testing
-    def forward_and_adapt(self, x, model, optimizer):
-        """Forward and adapt model on batch of data.
-        Measure entropy of the model prediction, take gradients, and update params.
-        """
-        # forward
-        optimizer.zero_grad()
-        outputs = model(x)
-        # adapt
-        py, y_prime = F.softmax(outputs, dim=-1).max(1)
-        flag = py > self.beta
-        
-        loss = F.cross_entropy(outputs[flag], y_prime[flag])
-        loss.backward()
-        optimizer.step()
-        return outputs
-
-    def configure_model_optimizer(self, algorithm, alpha):
-        adapted_algorithm = copy.deepcopy(algorithm)
-        optimizer = torch.optim.Adam(
-            adapted_algorithm.parameters(), 
-            lr=1e-3  * alpha,
-            #weight_decay=algorithm.hparams['weight_decay']
-        )
-        return adapted_algorithm, optimizer
-
-    def predict(self, x, adapt=True):
-        return self(x, adapt)
-
-    def reset(self):
-        if self.model_state is None or self.optimizer_state is None:
-            raise Exception("cannot reset without saved model/optimizer state")
-        load_model_and_optimizer(self.model, self.optimizer,
-                                 self.model_state, self.optimizer_state)
         
 class SHOT(nn.Module):
     """
@@ -415,21 +347,4 @@ class SHOT(nn.Module):
         load_model_and_optimizer(self.model, self.optimizer,
                                  self.model_state, self.optimizer_state)
         
-class PLClf(PseudoLabel):
-    def configure_model_optimizer(self, algorithm, alpha):
-        adapted_algorithm = copy.deepcopy(algorithm)
-        optimizer = torch.optim.Adam(
-            adapted_algorithm.classifier.parameters(), 
-            lr=1e-3 * alpha,
-            #weight_decay=algorithm.hparams['weight_decay']
-        )
-        return adapted_algorithm, optimizer
 
-    def predict(self, x, adapt=True):
-        return self(x, adapt)
-
-    def reset(self):
-        if self.model_state is None or self.optimizer_state is None:
-            raise Exception("cannot reset without saved model/optimizer state")
-        load_model_and_optimizer(self.model, self.optimizer,
-                                 self.model_state, self.optimizer_state)
